@@ -1,0 +1,1578 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TERRANEX — Advanced Rescue Intelligence System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+
+<body>
+
+    <!-- Ambient Tactical Background Canvas -->
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Fullscreen Cinematic Welcome Intro Overlay -->
+    <div id="cinematicIntro">
+        <div class="intro-emblem">
+            <div class="intro-emblem-ring"></div>
+            <div class="intro-emblem-core">⊞</div>
+        </div>
+        <div class="intro-title">WELCOME TO <span>TERRANEX</span></div>
+        <div class="intro-sub">ADVANCED RESCUE INTELLIGENCE SYSTEM</div>
+        <div class="intro-desc">Monitoring Environments. Detecting Human Presence. Supporting Rescue Decisions.</div>
+
+        <!-- 3D Wireframe Rover Preview -->
+        <div class="intro-3d-box" id="intro3dContainer"></div>
+
+        <!-- Real Subsystem Verification Checklist -->
+        <div class="intro-check-list">
+            <div class="intro-check-item" id="bootStepFlask">
+                <span class="check-icon">⏳</span> <span>Connecting Flask SCADA API...</span>
+            </div>
+            <div class="intro-check-item" id="bootStepYolo">
+                <span class="check-icon">⏳</span> <span>Verifying YOLO 11n Inference Engine...</span>
+            </div>
+            <div class="intro-check-item" id="bootStepRover">
+                <span class="check-icon">⏳</span> <span>Polling ESP32 Main Rover Telemetry...</span>
+            </div>
+            <div class="intro-check-item" id="bootStepCamera">
+                <span class="check-icon">⏳</span> <span>Checking ESP32-CAM MJPEG Stream...</span>
+            </div>
+        </div>
+
+        <div class="intro-progress-bar-wrap">
+            <div class="intro-progress-bar" id="introProgressBar"></div>
+        </div>
+
+        <button class="intro-skip-btn" id="btnSkipIntro">SKIP INTRO [ESC]</button>
+    </div>
+
+    <!-- Top SCADA Header Bar (Futuristic Command Center Style) -->
+    <header class="scada-header">
+        <!-- Left Brand with Delta Emblem -->
+        <div class="brand">
+            <svg class="brand-emblem-svg" viewBox="0 0 100 100">
+                <polygon points="50,10 90,85 10,85" fill="none" stroke="#20F58A" stroke-width="8" stroke-linejoin="round" />
+                <polygon points="50,30 78,80 22,80" fill="url(#brandGrad)" />
+                <polygon points="50,50 65,77 35,77" fill="#060B08" />
+                <defs>
+                    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#20F58A" />
+                        <stop offset="100%" stop-color="#059669" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="brand-text-wrap">
+                <span class="brand-title">TERRANEX</span>
+                <span class="brand-sub">Advanced Rescue Intelligence System</span>
+            </div>
+        </div>
+
+        <!-- Central Hexagonal Welcome Banner -->
+        <div class="header-welcome-banner">
+            <span class="banner-chevron">&lt;&lt;&lt;</span>
+            <div class="banner-center-text">
+                <span class="banner-title">Welcome to TERRANEX</span>
+                <span class="banner-desc">Monitoring Environments. Detecting Human Presence. Supporting Rescue Decisions.</span>
+            </div>
+            <span class="banner-chevron">&gt;&gt;&gt;</span>
+        </div>
+
+        <!-- Right Clock, Status & Actions -->
+        <div class="header-right">
+            <div class="header-clock-block">
+                <span class="header-clock-time" id="topLiveClock">14:32:18</span>
+                <span class="header-clock-date" id="topLiveDate">Apr 23, 2025</span>
+            </div>
+
+            <span class="pill ok" id="topOnlinePill">
+                <i class="dot"></i><span id="connText">System Online v2.2.0</span>
+            </span>
+
+            <button class="btn-header-gear" id="btnHeaderGear" onclick="switchSection('tab-settings')" title="System Settings">⚙</button>
+            <button class="danger sm" data-cmd="stop" title="Emergency halt rover drive motors">EMERGENCY STOP</button>
+            <button class="sm" id="btnFull" title="Toggle Fullscreen">⛶</button>
+
+            <!-- Preserved State Elements (Kept hidden/available for JS bindings) -->
+            <div style="display:none;">
+                <span id="connPill"></span>
+                <b id="headerModelPill">YOLO 11n</b>
+                <b id="headerCrowdPill">NORMAL</b>
+                <b id="headerScorePill">—/100</b>
+                <b id="uptime">00:00:00</b>
+                <b id="headerLastUpdate">—</b>
+            </div>
+        </div>
+    </header>
+
+    <!-- App Body Layout -->
+    <div class="app-container">
+
+        <!-- Sidebar Navigation: 20 Sections -->
+        <nav class="scada-sidebar">
+            <div class="nav-group-title">Primary Operations</div>
+            <ul class="nav-list">
+                <li class="nav-item active" data-tab="tab-overview"><span class="icon">⊞</span><span
+                        class="nav-text">Overview</span></li>
+                <li class="nav-item" data-tab="tab-detection"><span class="icon">👤</span><span class="nav-text">Human
+                        Detection</span></li>
+                <li class="nav-item" data-tab="tab-camera"><span class="icon">📹</span><span class="nav-text">Live
+                        Camera</span></li>
+                <li class="nav-item" data-tab="tab-digital-twin"><span class="icon">🤖</span><span
+                        class="nav-text">Digital Twin</span></li>
+            </ul>
+
+            <div class="nav-group-title">Sensory & Environment</div>
+            <ul class="nav-list">
+                <li class="nav-item" data-tab="tab-environment"><span class="icon">☣</span><span
+                        class="nav-text">Environmental Intel</span></li>
+                <li class="nav-item" data-tab="tab-visual-memory"><span class="icon">👁</span><span
+                        class="nav-text">Visual Change Memory</span></li>
+                <li class="nav-item" data-tab="tab-evidence-fusion"><span class="icon">⚗</span><span
+                        class="nav-text">Evidence Fusion</span></li>
+                <li class="nav-item" data-tab="tab-mission-replay"><span class="icon">⏪</span><span
+                        class="nav-text">Mission Replay</span></li>
+            </ul>
+
+            <div class="nav-group-title">AI & Diagnostics</div>
+            <ul class="nav-list">
+                <li class="nav-item" data-tab="tab-confidence-monitor"><span class="icon">🎯</span><span
+                        class="nav-text">AI Confidence Monitor</span></li>
+                <li class="nav-item" data-tab="tab-anomaly-detection"><span class="icon">⚡</span><span
+                        class="nav-text">Anomaly Detection</span><span class="nav-badge crit" id="sidebarAnomalyBadge">2</span></li>
+                <li class="nav-item" data-tab="tab-predictive-maintenance"><span class="icon">🔧</span><span
+                        class="nav-text">Predictive Maintenance</span></li>
+                <li class="nav-item" data-tab="tab-root-cause"><span class="icon">🌲</span><span class="nav-text">Root
+                        Cause Explorer</span></li>
+                <li class="nav-item" data-tab="tab-simulation"><span class="icon">🧪</span><span
+                        class="nav-text">What-If Simulation</span></li>
+                <li class="nav-item" data-tab="tab-sensor-diagnostics"><span class="icon">🩺</span><span
+                        class="nav-text">Sensor Diagnostics</span></li>
+                <li class="nav-item" data-tab="tab-network-reliability"><span class="icon">📡</span><span
+                        class="nav-text">Network Reliability</span></li>
+            </ul>
+
+            <div class="nav-group-title">Logs & Support</div>
+            <ul class="nav-list">
+                <li class="nav-item" data-tab="tab-event-timeline"><span class="icon">⏱</span><span
+                        class="nav-text">Event Timeline</span></li>
+                <li class="nav-item" data-tab="tab-decision-support"><span class="icon">🛡</span><span
+                        class="nav-text">Decision Support</span></li>
+                <li class="nav-item" data-tab="tab-inspection-journal"><span class="icon">📝</span><span
+                        class="nav-text">Inspection Journal</span></li>
+                <li class="nav-item" data-tab="tab-reports"><span class="icon">📊</span><span
+                        class="nav-text">Reports</span></li>
+                <li class="nav-item" data-tab="tab-settings"><span class="icon">⚙</span><span
+                        class="nav-text">Settings</span></li>
+            </ul>
+
+            <!-- Sidebar Bottom HUD Equalizer (Mockup Style) -->
+            <div class="sidebar-bottom-hud">
+                <div class="sidebar-hud-box">
+                    <div class="sidebar-hud-header"><span>⊞</span> TERRANEX Mission Control</div>
+                    <canvas id="sidebarEqualizer" class="sidebar-equalizer-canvas" width="200" height="28"></canvas>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <main class="scada-workspace">
+
+            <!-- ================= PROMINENT CROWD ALERT BANNER (Internal State Only) ================= -->
+            <div class="crowd-alert-banner" id="crowdAlertBanner" style="display:none !important;" aria-hidden="true">
+                <div class="crowd-alert-header">
+                    <span class="crowd-alert-title">🚨 CROWD DETECTED — RESCUE TEAM ATTENTION REQUIRED</span>
+                    <span class="pill crit" style="font-weight:700;">HIGH PRIORITY ALERT</span>
+                </div>
+                <div class="crowd-alert-grid">
+                    <div class="crowd-alert-field"><span>Detected People:</span><b id="crowdDetectedCount">0</b></div>
+                    <div class="crowd-alert-field"><span>Alert Threshold:</span><b id="crowdConfigThreshold">4</b></div>
+                    <div class="crowd-alert-field"><span>Detection Timestamp:</span><b id="crowdDetectionTime">—</b>
+                    </div>
+                    <div class="crowd-alert-field"><span>Vision Model & Confidence:</span><b id="crowdModelInfo">YOLO
+                            11n (COCO)</b></div>
+                    <div class="crowd-alert-field"><span>Camera Status:</span><b id="crowdCameraStatus">ONLINE</b></div>
+                    <div class="crowd-alert-field"><span>System Severity:</span><b
+                            style="color:var(--critical);">CRITICAL NOTIFICATION</b></div>
+                </div>
+                <div class="crowd-alert-action">
+                    <span><b>Recommended Operator Protocol:</b> Notify the rescue coordinator and arrange appropriate
+                        rescue-team assessment immediately. Confirm scene visual confirmation before deployment.</span>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="text" id="crowdOperatorNote" placeholder="Operator dispatch / audit note..."
+                            style="background:#200505;border:1px solid #7f1d1d;color:#fff;padding:5px 8px;font-size:11px;width:200px;">
+                        <button class="danger sm" id="btnAckCrowdAlert">Acknowledge Alert</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Replay Active Banner -->
+            <div class="replay-banner" id="replayBanner" style="display:none;">
+                <span>⚠ <b>HISTORICAL MISSION REPLAY ACTIVE</b> — Scrubbed Timestamp: <b id="replayBannerTime">—</b>
+                    (Live incoming stream held in background)</span>
+                <button id="btnExitReplay">Return to Live</button>
+            </div>
+
+            <!-- ================= 1. OVERVIEW (FUTURISTIC COMMAND CENTER) ================= -->
+            <section class="tab-section active" id="tab-overview">
+
+                <!-- Top KPI Row (6 Cards matching Mockup) -->
+                <div class="kpi-row-mockup">
+                    <!-- 1. People Detected -->
+                    <div class="kpi-card-mockup green-glow">
+                        <div class="kpi-icon-badge green">👥</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">People Detected</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="peopleCount">0</span>
+                                <span class="kpi-delta" id="peopleDelta">+0</span>
+                            </div>
+                            <span class="kpi-sub-text" id="peopleCountSub">Current Frame</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Crowd Alert -->
+                    <div class="kpi-card-mockup red-glow">
+                        <div class="kpi-icon-badge red">⚠️</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">Crowd Alert</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="kpiCrowdStatus" style="color:var(--normal);">OFF</span>
+                            </div>
+                            <span class="kpi-sub-text">Threshold: <b id="kpiCrowdThreshold">4</b></span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Temperature -->
+                    <div class="kpi-card-mockup amber-glow">
+                        <div class="kpi-icon-badge amber">🌡️</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">Temperature</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="kpiTemp">28.4°C</span>
+                                <span class="kpi-delta" id="tempDelta">+0.2</span>
+                            </div>
+                            <span class="kpi-sub-text">DHT11 Observation</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. Humidity -->
+                    <div class="kpi-card-mockup blue-glow">
+                        <div class="kpi-icon-badge blue">💧</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">Humidity</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="kpiHum">62%</span>
+                                <span class="kpi-delta" id="humDelta">+1%</span>
+                            </div>
+                            <span class="kpi-sub-text">Relative Humidity</span>
+                        </div>
+                    </div>
+
+                    <!-- 5. Sensor Health -->
+                    <div class="kpi-card-mockup green-glow">
+                        <div class="kpi-icon-badge green">🛡️</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">Sensor Health</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="kpiSensorHealth">98%</span>
+                            </div>
+                            <div class="kpi-progress-wrap">
+                                <div class="kpi-progress-fill green" id="kpiSensorBar" style="width:98%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Maintenance -->
+                    <div class="kpi-card-mockup amber-glow">
+                        <div class="kpi-icon-badge amber">🔧</div>
+                        <div class="kpi-info-block">
+                            <span class="kpi-title">Maintenance</span>
+                            <div class="kpi-value-row">
+                                <span class="kpi-main-val" id="kpiMaintenance">92%</span>
+                            </div>
+                            <div class="kpi-progress-wrap">
+                                <div class="kpi-progress-fill amber" id="kpiMaintBar" style="width:92%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OVERVIEW ROW 1: 3D DIGITAL TWIN, LIVE CAMERA FEED, ENVIRONMENTAL HEATMAP -->
+                <div class="overview-row-1">
+
+                    <!-- Panel 1: 3D Digital Twin — TERRANEX Rover -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">🤖 3D Digital Twin — TERRANEX Rover</span>
+                            <span class="pill ok"><i class="dot"></i>Online</span>
+                        </div>
+                        <div class="digital-twin-viewport-wrap">
+                            <div id="overview3dContainer" class="viewport-3d-canvas-box"></div>
+
+                            <!-- Pinned Floating HUD Indicators on Left -->
+                            <div class="twin-hud-overlay-left">
+                                <div class="twin-hud-pill"><i class="dot"></i>Front Sensor: <b id="hudTwinFront">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>Left Sensor: <b id="hudTwinLeft">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>Right Sensor: <b id="hudTwinRight">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>DHT11: <b id="hudTwinDht">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>MQ-2 / MQ-4: <b id="hudTwinGases">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>Encoder: <b id="hudTwinEncoder">Active</b></div>
+                                <div class="twin-hud-pill"><i class="dot"></i>Orientation: <b id="hudTwinOrientation">0.0°, 0.0°, 0.0°</b></div>
+                            </div>
+
+                            <!-- Wi-Fi Connected Badge Bottom Right -->
+                            <div class="twin-hud-wifi">📶 <span id="twinWifiRssi">-62 dBm Connected</span></div>
+
+                            <!-- View Preset Controls -->
+                            <div class="viewport-3d-toolbar">
+                                <button class="preset-btn" data-view="iso">ISO</button>
+                                <button class="preset-btn" data-view="top">TOP</button>
+                                <button class="preset-btn" data-view="front">FRONT</button>
+                                <button class="preset-btn" data-view="side">SIDE</button>
+                                <button class="preset-btn" data-view="reset">RESET</button>
+                            </div>
+
+                            <div id="rover3dTooltip"></div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: Live Camera Feed -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">📹 Live Camera Feed</span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="pill crit" style="font-weight:700;"><i class="dot"></i>LIVE</span>
+                                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);" id="camLiveClock">14:32:18</span>
+                            </div>
+                        </div>
+
+                        <div class="camera-card-inner" id="feed">
+                            <img id="video" class="camera-feed-img" alt="Annotated ESP32-CAM Feed">
+                            <div class="camera-placeholder-msg">
+                                Camera stream standby. Click <b>Start Monitoring</b> to connect capture stream.
+                            </div>
+
+                            <!-- Overhead Crowd Warning Banner -->
+                            <div class="cam-crowd-alert-tag" id="camCrowdWarningTag">🚨 4+ People Detected!</div>
+
+                            <!-- Bottom Overlay Controls & Status -->
+                            <div class="cam-bottom-toolbar">
+                                <span class="cam-stats-text">Count: <b id="camCountLabel">0</b> | Confidence: <b id="camConfLabel">--%</b></span>
+                                <div style="display:flex;gap:6px;">
+                                    <button class="primary sm" id="btnStart">Start</button>
+                                    <button class="sm" id="btnPause" disabled>Pause</button>
+                                    <button class="danger sm" id="btnStop" disabled>Stop</button>
+                                    <button class="sm" id="btnSnap" disabled>Snap</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: Environmental Heatmap -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">🌡️ Environmental Heatmap</span>
+                            <span class="pill ok" style="font-size:10px;"><i class="dot"></i>Live</span>
+                        </div>
+                        <div class="thermal-heatmap-card-body">
+                            <div style="font-family:var(--font-tech);font-size:10px;color:var(--text-sub);letter-spacing:0.5px;">
+                                TEMPERATURE SENSOR OBSERVATION — SENSOR-BASED
+                            </div>
+                            <div class="thermal-canvas-wrap">
+                                <canvas id="overviewThermalCanvas" class="thermal-canvas-view" width="220" height="190"></canvas>
+                                <div class="thermal-scale-bar-wrap">
+                                    <span>40°C</span>
+                                    <span>35°C</span>
+                                    <div class="thermal-scale-gradient"></div>
+                                    <span>25°C</span>
+                                    <span>20°C</span>
+                                </div>
+                            </div>
+                            <div class="thermal-footer-bar">
+                                <span id="thermalMapFooter">28.4°C | Fresh: 14:32:10</span>
+                                <span style="font-weight:700;color:var(--normal);">● Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- OVERVIEW ROW 2: SENSOR ANALYTICS, CROWD ALERT, RECENT EVENTS, ASSISTANT -->
+                <div class="overview-row-2">
+
+                    <!-- Card 1: Sensor Analytics -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">📈 Sensor Analytics</span>
+                            <div class="chart-series-chips" id="telemetrySeriesToggles">
+                                <span class="chart-chip active" data-series="3"><i class="dot" style="background:#FFB020;"></i>Temp</span>
+                                <span class="chart-chip active" data-series="4"><i class="dot" style="background:#38BDF8;"></i>Humidity</span>
+                                <span class="chart-chip active" data-series="5"><i class="dot" style="background:#20F58A;"></i>MQ-2</span>
+                                <span class="chart-chip active" data-series="6"><i class="dot" style="background:#C084FC;"></i>MQ-4</span>
+                            </div>
+                        </div>
+                        <div style="padding:10px;height:180px;">
+                            <canvas id="overviewChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Crowd Detection Alert (Mockup Card Style) -->
+                    <div class="crowd-alert-card-mockup" id="alertCardCrowd">
+                        <div class="crowd-alert-header-row">
+                            <span class="crowd-alert-triangle-icon">⚠️</span>
+                            <div class="crowd-alert-titles-wrap">
+                                <span class="crowd-alert-main-title">CROWD DETECTION ALERT</span>
+                                <span class="crowd-alert-sub-title">RESCUE TEAM ATTENTION REQUIRED</span>
+                            </div>
+                        </div>
+
+                        <div class="crowd-alert-center-body">
+                            <div class="crowd-silhouettes-icon">👥</div>
+                            <div class="crowd-metrics-text">
+                                <div>Detected: <b id="alertCardCount">0</b> | Threshold: <b>4</b></div>
+                                <div>Time: <b id="alertCardTime">—</b></div>
+                                <div style="font-size:10px;color:#fecaca;">Visual confirmation advised before field action.</div>
+                            </div>
+                        </div>
+
+                        <button class="btn-crowd-view-details" id="btnAlertCardViewDetails" onclick="switchSection('tab-event-timeline')">
+                            View Details →
+                        </button>
+                    </div>
+
+                    <!-- Card 3: Recent Events -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">📋 Recent Events</span>
+                            <button class="sm" onclick="switchSection('tab-event-timeline')" style="padding:2px 8px;font-size:10px;">View All →</button>
+                        </div>
+                        <div class="recent-events-list" id="recentEventsList">
+                            <div class="recent-event-item">
+                                <div class="event-icon-badge red">👥</div>
+                                <div class="event-item-content">
+                                    <div class="event-item-title">Human Detection</div>
+                                    <div class="event-item-sub">4 people detected</div>
+                                </div>
+                                <span class="event-item-time">14:32:18</span>
+                            </div>
+                            <div class="recent-event-item">
+                                <div class="event-icon-badge amber">🌡️</div>
+                                <div class="event-item-content">
+                                    <div class="event-item-title">Temperature Rising</div>
+                                    <div class="event-item-sub">28.4°C (+0.2°C)</div>
+                                </div>
+                                <span class="event-item-time">14:31:50</span>
+                            </div>
+                            <div class="recent-event-item">
+                                <div class="event-icon-badge green">✓</div>
+                                <div class="event-item-content">
+                                    <div class="event-item-title">System Normal</div>
+                                    <div class="event-item-sub">All systems operational</div>
+                                </div>
+                                <span class="event-item-time">14:30:22</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: TERRANEX Assistant (Mockup Style with Mascot) -->
+                    <div class="assistant-card-mockup">
+                        <div class="assistant-card-top">
+                            <!-- Cute Robot Mascot SVG -->
+                            <svg class="assistant-avatar-svg" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="42" fill="#0C1511" stroke="#20F58A" stroke-width="3" />
+                                <rect x="30" y="32" width="40" height="28" rx="8" fill="#14281E" stroke="#80DCA7" stroke-width="2" />
+                                <ellipse cx="42" cy="46" rx="5" ry="7" fill="#38BDF8" />
+                                <ellipse cx="58" cy="46" rx="5" ry="7" fill="#38BDF8" />
+                                <rect x="46" y="20" width="8" height="12" rx="4" fill="#20F58A" />
+                                <circle cx="50" cy="18" r="4" fill="#20F58A" />
+                                <path d="M 40 68 Q 50 75 60 68" stroke="#20F58A" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                            </svg>
+                            <div class="assistant-welcome-text">
+                                <span class="assistant-welcome-title">TERRANEX Assistant</span>
+                                <span class="assistant-welcome-desc">Your environmental & rescue monitoring command center.</span>
+                            </div>
+                        </div>
+
+                        <div class="assistant-checklist">
+                            <div class="ast-check-row"><span>Rover Connection</span><span class="check-mark" id="astCheckRover">✓</span></div>
+                            <div class="ast-check-row"><span>Camera Status</span><span class="check-mark" id="astCheckCam">✓</span></div>
+                            <div class="ast-check-row"><span>AI Model Ready</span><span class="check-mark" id="astCheckModel">✓</span></div>
+                            <div class="ast-check-row"><span>Active Alerts</span><b id="astActiveAlerts" style="color:var(--warning);">1</b></div>
+                        </div>
+
+                        <button class="btn-assistant-action" id="btnAssistantViewDetails" onclick="switchSection('tab-event-timeline')">
+                            View Details →
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- OVERVIEW ROW 3: ENVIRONMENTAL OVERVIEW, RELIABILITY, HEALTH, MISSION READY -->
+                <div class="overview-row-3">
+
+                    <!-- Card 1: Environmental Overview Matrix -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">☣ Environmental Overview</span>
+                        </div>
+                        <div class="env-matrix-body">
+                            <div class="env-matrix-grid" id="envOverviewMatrix">
+                                <!-- 48 Modular Matrix Cells -->
+                            </div>
+                            <div class="env-matrix-legend">
+                                <div class="matrix-legend-row"><span class="matrix-dot hot"></span> Hot</div>
+                                <div class="matrix-legend-row"><span class="matrix-dot warm"></span> Warm</div>
+                                <div class="matrix-legend-row"><span class="matrix-dot norm"></span> Normal</div>
+                                <div class="matrix-legend-row"><span class="matrix-dot cool"></span> Cool</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Network Reliability -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">📡 Network Reliability</span>
+                        </div>
+                        <div class="net-rel-body">
+                            <div class="net-ring-gauge-wrap">
+                                <svg class="net-ring-svg" viewBox="0 0 36 36">
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#14281E" stroke-width="3" />
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#20F58A" stroke-width="3" stroke-dasharray="99, 100" />
+                                </svg>
+                                <span class="net-ring-val-center">99%</span>
+                            </div>
+                            <div class="net-rel-stats-col">
+                                <div>Uptime: <b id="ovNetUptime">99.0%</b></div>
+                                <div>Last Response: <b id="ovNetLastResp">14:32:18</b></div>
+                                <canvas id="ovNetSparkline" class="mini-sparkline-canvas" width="160" height="24"></canvas>
+                                <div>Avg Response: <b id="ovNetAvg">245ms</b></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: System Health -->
+                    <div class="scada-card">
+                        <div class="scada-card-header">
+                            <span class="scada-card-title">🩺 System Health</span>
+                        </div>
+                        <div class="sys-health-body">
+                            <div class="sys-ring-item">
+                                <div class="sys-ring-wrap">
+                                    <svg class="net-ring-svg" viewBox="0 0 36 36">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#14281E" stroke-width="3" />
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#20F58A" stroke-width="3" stroke-dasharray="98, 100" />
+                                    </svg>
+                                    <span class="net-ring-val-center">98%</span>
+                                </div>
+                                <span class="sys-ring-label">Sensors</span>
+                            </div>
+                            <div class="sys-ring-item">
+                                <div class="sys-ring-wrap">
+                                    <svg class="net-ring-svg" viewBox="0 0 36 36">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#14281E" stroke-width="3" />
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#20F58A" stroke-width="3" stroke-dasharray="100, 100" />
+                                    </svg>
+                                    <span class="net-ring-val-center">100%</span>
+                                </div>
+                                <span class="sys-ring-label">Camera</span>
+                            </div>
+                            <div class="sys-ring-item">
+                                <div class="sys-ring-wrap">
+                                    <svg class="net-ring-svg" viewBox="0 0 36 36">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#14281E" stroke-width="3" />
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#20F58A" stroke-width="3" stroke-dasharray="99, 100" />
+                                    </svg>
+                                    <span class="net-ring-val-center">99%</span>
+                                </div>
+                                <span class="sys-ring-label">Connection</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: TERRANEX Mission Ready -->
+                    <div class="scada-card">
+                        <div class="mission-ready-card-body">
+                            <div class="mission-ready-globe-graphic"></div>
+                            <div class="mission-ready-badge">
+                                <svg style="width:28px;height:28px;" viewBox="0 0 100 100">
+                                    <polygon points="50,10 90,85 10,85" fill="none" stroke="#20F58A" stroke-width="8" stroke-linejoin="round" />
+                                    <polygon points="50,30 78,80 22,80" fill="#20F58A" />
+                                </svg>
+                                <div class="mission-ready-texts">
+                                    <span class="mission-ready-title">TERRANEX</span>
+                                    <span class="mission-ready-sub">Mission Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Preserved Secondary Elements for Javascript bindings -->
+                <div style="display:none;">
+                    <div id="kpiFront">—</div>
+                    <div id="kpiRssi">—</div>
+                    <span id="statusText">Idle</span>
+                    <button id="clrAlerts"></button>
+                    <div id="alerts"></div>
+                    <canvas id="humanDetectionActivityChart"></canvas>
+                    <div id="overviewSensorGrid"></div>
+                    <div id="miniTwinFront">—</div>
+                    <div id="miniTwinLateral">—</div>
+                    <div id="miniTwinTilt">—</div>
+                    <div id="miniTwinGas">—</div>
+                    <div id="miniTimelinePreview"></div>
+                    <span id="hudModel">YOLO 11n</span>
+                    <span id="hudCount">PERSONS 0</span>
+                    <span id="hudTime">WAITING</span>
+                </div>
+
+            </section>
+
+            <!-- ================= 2. HUMAN DETECTION ================= -->
+            <section class="tab-section" id="tab-detection">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Human Detection Pipeline & Crowd Activity</h2>
+                        <div class="section-desc">Ultralytics YOLO inference feed with bounding boxes, confidence
+                            telemetry, crowd threshold reference, and deduplicated sighting logs.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <button class="sm" id="csvExport">Export Detection CSV</button>
+                        <button class="sm" id="clrLog">Clear Log</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Human Detection Historical Activity (With Crowd Reference Line)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="detectionTabChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Inference Output Stream</span>
+                        </div>
+                        <div class="camera-box live">
+                            <img id="videoDetectionClone" src="" style="display:none;">
+                            <div class="camera-empty">Inference frame synced with main stream.</div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Transition-Deduplicated Detection Log</span>
+                            <span style="font-size:11px;color:var(--text-muted);">Visible Detections</span>
+                        </div>
+                        <div class="log-stream" id="detectionLog" style="height:340px;">
+                            <div class="none" style="padding:16px;color:var(--text-muted);text-align:center;">Start
+                                monitoring to record verified human sightings.</div>
+                        </div>
+                        <div style="font-size:11px;color:var(--text-sub);margin-top:10px;line-height:1.4;">
+                            <b>Note:</b> Human count indicates instantaneous visible detections in camera field of view,
+                            not verified unique individuals. Transition-based event recording filters continuous
+                            duplicate frames.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 3. LIVE CAMERA ================= -->
+            <section class="tab-section" id="tab-camera">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Live Camera Feed</h2>
+                        <div class="section-desc">Dedicated full-resolution view with real-time HUD overlays, capture
+                            controls, and feed telemetry.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <button class="sm primary" id="camFullBtnSnap" disabled>Capture High-Res Snapshot</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="camera-box" id="camFullFeed" style="aspect-ratio:16/9;max-height:560px;">
+                        <img id="camFullVideo" alt="Live Feed Full View">
+                        <div class="camera-empty">Camera feed idle. Start monitoring to activate video stream.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 4. DIGITAL TWIN ================= -->
+            <section class="tab-section" id="tab-digital-twin">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Digital Twin Rover SCADA Environment</h2>
+                        <div class="section-desc">Interactive 3D Rover digital twin alongside 2D schematic showing sensor positions, live hardware statuses, and telemetry readouts.</div>
+                    </div>
+                </div>
+
+                <!-- 3D Interactive Digital Twin Environment -->
+                <div class="panel" style="padding:0;overflow:hidden;margin-bottom:16px;">
+                    <div class="panel-header" style="padding:10px 14px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="panel-title">3D Rover Digital Twin Environment</span>
+                            <span class="pill" style="font-size:10px;background:rgba(16,185,129,0.1);color:var(--normal);border-color:rgba(16,185,129,0.3);">LIVE STATUS SYNC</span>
+                        </div>
+                        <div class="viewport-3d-toolbar" style="position:static;">
+                            <button class="preset-btn" data-view="iso" data-target="digitalTwin">ISO</button>
+                            <button class="preset-btn" data-view="top" data-target="digitalTwin">TOP</button>
+                            <button class="preset-btn" data-view="front" data-target="digitalTwin">FRONT</button>
+                            <button class="preset-btn" data-view="side" data-target="digitalTwin">SIDE</button>
+                            <button class="preset-btn" data-view="reset" data-target="digitalTwin">RESET</button>
+                        </div>
+                    </div>
+                    <div class="viewport-3d-wrap" style="height:360px;">
+                        <div id="digitalTwin3dContainer" style="width:100%;height:100%;"></div>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="digital-twin-container">
+                        <!-- 2D Rover SVG Top-View Schematic -->
+                        <svg id="digitalTwinSvg" viewBox="0 0 500 500" width="100%" height="380"
+                            style="max-width:440px;">
+                            <!-- Chassis Outline -->
+                            <rect x="150" y="90" width="200" height="320" rx="20" fill="#161c24" stroke="#2c3545"
+                                stroke-width="3" />
+                            <!-- Tread / Wheels Left -->
+                            <rect x="120" y="110" width="24" height="90" rx="4" fill="#0d1117" stroke="#374151"
+                                stroke-width="2" />
+                            <rect x="120" y="290" width="24" height="90" rx="4" fill="#0d1117" stroke="#374151"
+                                stroke-width="2" />
+                            <!-- Tread / Wheels Right -->
+                            <rect x="356" y="110" width="24" height="90" rx="4" fill="#0d1117" stroke="#374151"
+                                stroke-width="2" />
+                            <rect x="356" y="290" width="24" height="90" rx="4" fill="#0d1117" stroke="#374151"
+                                stroke-width="2" />
+
+                            <!-- Forward Direction Indicator -->
+                            <polygon points="250,55 240,75 260,75" fill="#06b6d4" />
+                            <text x="250" y="48" fill="#8c97a8" font-size="10" text-anchor="middle"
+                                font-family="monospace">FORWARD</text>
+
+                            <!-- Front Ultrasonic Sensor (GPIO 16/19) -->
+                            <circle id="twin-node-front" cx="250" cy="90" r="14" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="250" y="94" fill="#fff" font-size="9" text-anchor="middle"
+                                font-weight="700">US-F</text>
+
+                            <!-- Left Ultrasonic Sensor (GPIO 17/21) -->
+                            <circle id="twin-node-left" cx="150" cy="200" r="13" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="150" y="204" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">US-L</text>
+
+                            <!-- Right Ultrasonic Sensor (GPIO 18/22) -->
+                            <circle id="twin-node-right" cx="350" cy="200" r="13" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="350" y="204" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">US-R</text>
+
+                            <!-- ESP32-CAM Location -->
+                            <rect id="twin-node-camera" x="235" y="125" width="30" height="26" rx="4" fill="#64748b"
+                                stroke="#fff" stroke-width="1.5" />
+                            <text x="250" y="142" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">CAM</text>
+
+                            <!-- MQ-2 Combustible Gas (GPIO 34) -->
+                            <circle id="twin-node-mq2" cx="205" cy="190" r="13" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="205" y="194" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">MQ2</text>
+
+                            <!-- MQ-4 Methane Gas (GPIO 35) -->
+                            <circle id="twin-node-mq4" cx="295" cy="190" r="13" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="295" y="194" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">MQ4</text>
+
+                            <!-- DHT11 Temp/Humidity (GPIO 5) -->
+                            <rect id="twin-node-dht" x="190" y="240" width="30" height="24" rx="3" fill="#64748b"
+                                stroke="#fff" stroke-width="1.5" />
+                            <text x="205" y="256" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">DHT</text>
+
+                            <!-- MPU6500 IMU (I2C 0x68) -->
+                            <rect id="twin-node-mpu" x="280" y="240" width="30" height="24" rx="3" fill="#64748b"
+                                stroke="#fff" stroke-width="1.5" />
+                            <text x="295" y="256" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">MPU</text>
+
+                            <!-- Wheel Optical Encoder (GPIO 33) -->
+                            <circle id="twin-node-encoder" cx="150" cy="340" r="12" fill="#64748b" stroke="#fff"
+                                stroke-width="1.5" />
+                            <text x="150" y="344" fill="#fff" font-size="8" text-anchor="middle"
+                                font-weight="700">ENC</text>
+
+                            <!-- Main Controller Board ESP32 -->
+                            <rect x="210" y="290" width="80" height="60" rx="4" fill="#1f2937" stroke="#4b5563"
+                                stroke-width="1.5" />
+                            <text x="250" y="325" fill="#9ca3af" font-size="9" text-anchor="middle"
+                                font-weight="600">ESP32 CORE</text>
+                        </svg>
+
+                        <div class="twin-legend">
+                            <div class="twin-legend-item"><span class="twin-badge norm"></span> Normal</div>
+                            <div class="twin-legend-item"><span class="twin-badge warn"></span> Warning</div>
+                            <div class="twin-legend-item"><span class="twin-badge crit"></span> Hazard / Limit</div>
+                            <div class="twin-legend-item"><span class="twin-badge off"></span> Offline / Unknown</div>
+                        </div>
+                        <div style="font-size:10px;color:var(--text-sub);margin-top:8px;">Schematic representation:
+                            Reflects sensor telemetry statuses without fabricated spatial coordinates.</div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Component Telemetry Diagnostics</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;">
+                            <div class="sensor-tile">
+                                <span class="sensor-tile-label">Front Clearance (US-F)</span>
+                                <span class="sensor-tile-val" id="twinReadoutFront">—</span>
+                            </div>
+                            <div class="sensor-tile">
+                                <span class="sensor-tile-label">Lateral Clearances (US-L / US-R)</span>
+                                <span class="sensor-tile-val" id="twinReadoutLeft">—</span>
+                                <span class="sensor-tile-val" id="twinReadoutRight"
+                                    style="font-size:13px;color:var(--text-muted);">—</span>
+                            </div>
+                            <div class="sensor-tile">
+                                <span class="sensor-tile-label">Chassis Inclination (MPU6500)</span>
+                                <span class="sensor-tile-val" id="twinReadoutTilt">—</span>
+                            </div>
+                            <div class="sensor-tile">
+                                <span class="sensor-tile-label">Gas Array Readings (Raw ADC)</span>
+                                <span class="sensor-tile-val" id="twinReadoutGases">—</span>
+                            </div>
+                            <div class="sensor-tile">
+                                <span class="sensor-tile-label">Drive Motor State & Encoder</span>
+                                <span class="sensor-tile-val" id="twinReadoutMotion">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 5. ENVIRONMENTAL INTELLIGENCE ================= -->
+            <section class="tab-section" id="tab-environment">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Environmental Intelligence</h2>
+                        <div class="section-desc">Atmospheric observations, gas concentration trends, and software
+                            observation heatmaps. Raw ADC values uncalibrated.</div>
+                    </div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Temperature</span>
+                        <div class="kpi-value" id="envCurTemp">—</div>
+                        <span class="kpi-sub">DHT11 Sensor</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Relative Humidity</span>
+                        <div class="kpi-value" id="envCurHum">—</div>
+                        <span class="kpi-sub">DHT11 Sensor</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Barometric Pressure</span>
+                        <div class="kpi-value" id="envCurPress">—</div>
+                        <span class="kpi-sub">BME280 (I2C)</span>
+                    </div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="kpi-card">
+                        <span class="kpi-label">MQ-2 Combustible Gas</span>
+                        <div class="kpi-value" id="envCurMq2">—</div>
+                        <span class="kpi-sub">Raw ADC (0 - 4095)</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">MQ-4 Methane</span>
+                        <div class="kpi-value" id="envCurMq4">—</div>
+                        <span class="kpi-sub">Raw ADC (0 - 4095)</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Carbon Monoxide (CO)</span>
+                        <div class="kpi-value" id="envCurCo">—</div>
+                        <span class="kpi-sub">Raw ADC (0 - 4095)</span>
+                    </div>
+                </div>
+
+                <!-- Graph C: Environmental Intelligence Graph -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph C: Environmental Intelligence Curves (Temperature, Humidity,
+                            Methane)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="envTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Chronological Observation Heatmap (Gas ADC Distribution)</span>
+                        <span style="font-size:11px;color:var(--text-muted);">Consecutive Telemetry Samples</span>
+                    </div>
+                    <div class="heatmap-grid" id="envHeatmapGrid"></div>
+                    <div style="font-size:10px;color:var(--text-sub);margin-top:6px;">Heatmap cells represent successive
+                        telemetry packets in temporal order. No unverified GPS coordinates are fabricated.</div>
+                </div>
+
+                <!-- Environmental Thermal Map (Sensor-Based) -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="panel-title">ENVIRONMENTAL TEMPERATURE MAP — SENSOR-BASED</span>
+                            <span class="pill" style="font-size:10px;background:rgba(234,179,8,0.1);color:var(--warning);border-color:rgba(234,179,8,0.3);">DHT11 TELEMETRY SCALE</span>
+                        </div>
+                        <div style="font-size:11px;color:var(--text-muted);display:flex;gap:12px;">
+                            <span>Current: <b id="thermalMapCurrent" style="color:#fff;">—</b></span>
+                            <span>Session Min: <b id="thermalMapMin" style="color:var(--normal);">—</b></span>
+                            <span>Session Max: <b id="thermalMapMax" style="color:var(--critical);">—</b></span>
+                            <span>Freshness: <b id="thermalMapFreshness" style="color:var(--accent);">—</b></span>
+                        </div>
+                    </div>
+
+                    <!-- Temperature Intensity Scale Legend -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;">
+                        <span style="color:var(--text-muted);">Temperature Scale:</span>
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:rgba(16,185,129,0.7);border-radius:2px;"></span> Cool (&lt;22°C)</span>
+                            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:rgba(234,179,8,0.7);border-radius:2px;"></span> Moderate (22-28°C)</span>
+                            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:rgba(249,115,22,0.8);border-radius:2px;"></span> Elevated (28-35°C)</span>
+                            <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:rgba(239,68,68,0.9);border-radius:2px;"></span> High (&gt;35°C)</span>
+                        </div>
+                    </div>
+
+                    <div class="heatmap-grid" id="envTempHeatmapGrid"></div>
+                    <div style="font-size:10px;color:var(--text-sub);margin-top:6px;">
+                        <b>Physical Sensor Integrity Note:</b> Observation reading from single onboard DHT11 sensor. No thermal imaging sensor present; grid represents chronological telemetry samples, not spatial temperature matrix.
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 6. VISUAL CHANGE MEMORY ================= -->
+            <section class="tab-section" id="tab-visual-memory">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Visual Change Memory System</h2>
+                        <div class="section-desc">IndexedDB snapshot gallery, side-by-side comparison, and canvas-based
+                            visual difference highlighter.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Dual Snapshot Comparison Tool</span>
+                        <div class="panel-tools">
+                            <select id="selectSnapshotA" style="max-width:200px;"></select>
+                            <select id="selectSnapshotB" style="max-width:200px;"></select>
+                            <button class="primary sm" id="btnRunComparison">Compute Visual Difference</button>
+                        </div>
+                    </div>
+
+                    <div class="compare-container">
+                        <div class="compare-panel">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);">Baseline Snapshot A
+                            </div>
+                            <div class="compare-img-box"><img id="previewImgA" src="" alt="Select Snapshot A"></div>
+                        </div>
+                        <div class="compare-panel">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);">Comparison Snapshot B
+                            </div>
+                            <div class="compare-img-box"><img id="previewImgB" src="" alt="Select Snapshot B"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px;">
+                        <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Visual Difference Heatmap Overlay
+                            (Canvas)</div>
+                        <div class="compare-img-box" style="aspect-ratio:16/9;max-height:360px;">
+                            <canvas id="diffCanvas"></canvas>
+                        </div>
+                        <div id="diffMetrics"
+                            style="font-size:11px;color:var(--warning);margin-top:6px;font-family:monospace;">Select two
+                            snapshots above and click 'Compute Visual Difference'.</div>
+                        <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">DISCLAIMER: Image differences
+                            represent optical pixel variations (lighting, movement), not verified physical structure
+                            changes.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Stored Snapshot Memory Gallery (IndexedDB)</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:12px;"
+                        id="snapshotGallery"></div>
+                </div>
+            </section>
+
+            <!-- ================= 7. EVIDENCE FUSION ================= -->
+            <section class="tab-section" id="tab-evidence-fusion">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Multi-Modal Evidence Fusion</h2>
+                        <div class="section-desc">Temporally synchronized clustering of vision sightings, ultrasonic
+                            clearances, and gas readings into cohesive inspection records.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Fused Inspection Evidence Records (±6.0s Temporal Window)</span>
+                    </div>
+                    <div id="fusionRecordsList"></div>
+                </div>
+            </section>
+
+            <!-- ================= 8. MISSION REPLAY STUDIO ================= -->
+            <section class="tab-section" id="tab-mission-replay">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Mission Replay Studio</h2>
+                        <div class="section-desc">Historical timeline scrubbing, synchronized sensor playback, and event
+                            marker navigation powered by IndexedDB.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <span class="pill" id="replayPacketCount">0 Packets</span>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Interactive Playback Controller</span>
+                        <div class="panel-tools">
+                            <button class="primary sm" id="btnReplayPlay">Play</button>
+                            <button class="sm" id="btnReplayPause">Pause</button>
+                            <button class="danger sm" id="btnReplayStop">Stop Replay</button>
+                            <select id="replaySpeedSelect" style="padding:4px 8px;">
+                                <option value="0.5">0.5x Speed</option>
+                                <option value="1.0" selected>1.0x Speed</option>
+                                <option value="2.0">2.0x Speed</option>
+                                <option value="5.0">5.0x Speed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="replay-scrubber-bar">
+                        <div style="display:flex;justify-content:space-between;font-size:11px;">
+                            <span>Session Start</span>
+                            <span id="replayTimestampDisplay" style="color:var(--warning);font-weight:700;">Scrub to
+                                begin</span>
+                            <span>Session End</span>
+                        </div>
+                        <div class="timeline-slider-wrap">
+                            <input type="range" class="timeline-slider" id="replaySlider" min="0" max="0" value="0">
+                            <div class="timeline-markers" id="timelineMarkersContainer"></div>
+                        </div>
+                    </div>
+
+                    <div id="replaySnapshotBox"
+                        style="display:none;margin-top:14px;background:#000;border:1px solid var(--border);border-radius:4px;overflow:hidden;max-height:300px;text-align:center;">
+                        <img id="replaySnapshotImg" src="" style="max-height:300px;object-fit:contain;">
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 9. AI CONFIDENCE MONITOR ================= -->
+            <section class="tab-section" id="tab-confidence-monitor">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">AI Confidence & Model Reliability Monitor</h2>
+                        <div class="section-desc">YOLO inference confidence tracking, model latency, and vision pipeline
+                            health status.</div>
+                    </div>
+                </div>
+
+                <div class="grid-3col">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Confidence Rating</span>
+                        <div class="kpi-value" id="confScoreDisplay">0%</div>
+                        <span class="kpi-sub"><span class="pill" id="confLevelBadge">UNKNOWN</span></span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Model Checkpoint</span>
+                        <div class="kpi-value" style="font-size:18px;">yolo11n.pt</div>
+                        <span class="kpi-sub">COCO Class 0 (Person)</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Vision Reliability</span>
+                        <div class="kpi-value" style="font-size:18px;">Assistive</div>
+                        <span class="kpi-sub">Non-Certified Safety System</span>
+                    </div>
+                </div>
+
+                <!-- Graph E: AI Confidence Graph -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph E: Model Confidence Timeline & Distribution</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="confidenceHistoryChart"></canvas>
+                    </div>
+                    <div id="confExplanationText"
+                        style="font-size:12px;color:var(--text-muted);margin-top:10px;padding:8px;background:var(--bg-panel-alt);border-radius:4px;">
+                        Awaiting model inference stream.
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 10. ANOMALY DETECTION ================= -->
+            <section class="tab-section" id="tab-anomaly-detection">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">RULE-BASED ANOMALY DETECTION</h2>
+                        <div class="section-desc">Browser-side statistical monitoring: Z-score deviations (3σ), sudden
+                            step changes, frozen data detection, and threshold breaches.</div>
+                    </div>
+                </div>
+
+                <!-- Graph G: Anomaly Detection Graph with Moving StdDev Bounds -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph G: Anomaly Statistical Bounds (Front Clearance ± 3σ
+                            Envelope)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="anomalyBoundsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Detected Telemetry Anomalies</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="scada-table">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Sensor</th>
+                                    <th>Observed</th>
+                                    <th>Baseline</th>
+                                    <th>Deviation</th>
+                                    <th>Explanation</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="anomalyTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 11. PREDICTIVE MAINTENANCE ================= -->
+            <section class="tab-section" id="tab-predictive-maintenance">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Predictive Maintenance & Component Health</h2>
+                        <div class="section-desc">MPU vibration variance, wheel stall monitoring, and sensor saturation
+                            tracking. Non-mechanical certification.</div>
+                    </div>
+                </div>
+
+                <!-- Graph H: Predictive Maintenance Trend Graph -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph H: Predictive Maintenance Indices (Vibration Variance & Motor
+                            Activity)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="maintenanceTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Component Maintenance Advisories</span>
+                    </div>
+                    <div id="predictiveAdvisoryContainer"></div>
+                </div>
+            </section>
+
+            <!-- ================= 12. ROOT CAUSE EXPLORER ================= -->
+            <section class="tab-section" id="tab-root-cause">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Root Cause Explorer</h2>
+                        <div class="section-desc">Interactive causal hypothesis builder connecting mission alerts,
+                            sensor observations, and vision sightings.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Active Incident Investigation Tree</span>
+                    </div>
+                    <div id="rootCauseTreeContainer"></div>
+                </div>
+            </section>
+
+            <!-- ================= 13. WHAT-IF SIMULATION ================= -->
+            <section class="tab-section" id="tab-simulation">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">What-If Simulation Lab</h2>
+                        <div class="section-desc">Software-only threshold simulator: Replays historical telemetry
+                            against custom thresholds without modifying physical rover.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <button class="primary sm" id="btnRunSimulation">Run Simulation</button>
+                        <button class="sm" id="btnResetSimulation">Reset Defaults</button>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Simulated Safety Thresholds</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:12px;font-size:12px;">
+                            <label>Front Collision Clearance Threshold (cm):
+                                <input type="number" id="simFrontThreshold" value="25" min="5" max="150">
+                            </label>
+                            <label>Simulated Crowd Alert Threshold (visible people):
+                                <input type="number" id="simCrowdThreshold" value="4" min="1" max="25">
+                            </label>
+                            <label>MQ-2 Combustible Gas Warning Limit (ADC):
+                                <input type="number" id="simMq2Threshold" value="3000" min="500" max="4000">
+                            </label>
+                            <label>MQ-4 Methane Warning Limit (ADC):
+                                <input type="number" id="simMq4Threshold" value="3000" min="500" max="4000">
+                            </label>
+                            <label>Chassis Tilt Incline Limit (degrees):
+                                <input type="number" id="simTiltThreshold" value="30" min="10" max="60">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Simulation Outcome Comparison</span>
+                        </div>
+                        <div class="grid-3col">
+                            <div class="kpi-card">
+                                <span class="kpi-label">Original Alerts</span>
+                                <div class="kpi-value" id="simOriginalAlerts">0</div>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-label">Simulated Alerts</span>
+                                <div class="kpi-value" id="simSimulatedAlerts">0</div>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-label">Difference</span>
+                                <div class="kpi-value" id="simDeltaAlerts">0</div>
+                            </div>
+                        </div>
+                        <div class="log-stream" id="simResultsLog" style="height:180px;margin-top:12px;">
+                            <div class="none" style="padding:14px;color:var(--text-muted);text-align:center;">Click 'Run
+                                Simulation' to test custom parameters.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 14. SENSOR DIAGNOSTICS ================= -->
+            <section class="tab-section" id="tab-sensor-diagnostics">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Sensor Self-Diagnostics Matrix & Health Trends</h2>
+                        <div class="section-desc">Granular health evaluations for each physical transducer channel:
+                            HEALTHY, WARNING, OFFLINE, STALE, UNKNOWN.</div>
+                    </div>
+                </div>
+
+                <!-- Graph D: Sensor Health Graph -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph D: Sensor Health & Availability Status</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sensorHealthChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="table-wrap">
+                        <table class="scada-table">
+                            <thead>
+                                <tr>
+                                    <th>Sensor Name</th>
+                                    <th>Telemetry Key</th>
+                                    <th>Current Reading</th>
+                                    <th>Diagnostic Status</th>
+                                    <th>Observation & Health Note</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="diagnosticsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 15. NETWORK RELIABILITY ================= -->
+            <section class="tab-section" id="tab-network-reliability">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Network & Communication Reliability</h2>
+                        <div class="section-desc">Measurable transmission performance: Flask server availability,
+                            telemetry latency, and link reliability.</div>
+                    </div>
+                </div>
+
+                <div class="grid-4col">
+                    <div class="kpi-card">
+                        <span class="kpi-label">API Latency</span>
+                        <div class="kpi-value" id="netLatency">0 ms</div>
+                        <span class="kpi-sub">Round-trip HTTP time</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Request Failures</span>
+                        <div class="kpi-value" id="netFailures">0</div>
+                        <span class="kpi-sub">Consecutive dropped queries</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Total Transactions</span>
+                        <div class="kpi-value" id="netTotalReqs">0</div>
+                        <span class="kpi-sub">Session poll requests</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Last Transmission</span>
+                        <div class="kpi-value" id="netLastSuccess" style="font-size:18px;">—</div>
+                        <span class="kpi-sub">Confirmed handshake</span>
+                    </div>
+                </div>
+
+                <!-- Graph F: Network Reliability Graph -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Graph F: API Response Latency (ms) & Failure History</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="networkLatencyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 16. EVENT TIMELINE ================= -->
+            <section class="tab-section" id="tab-event-timeline">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Smart Event Timeline</h2>
+                        <div class="section-desc">Unified chronological audit log with category and severity filters,
+                            search, and operator acknowledgement.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <select id="timelineCategoryFilter">
+                                <option value="all">All Categories</option>
+                                <option value="crowd">🚨 Crowd Alerts</option>
+                                <option value="detection">Human Detections</option>
+                                <option value="alert">Mission Alerts</option>
+                                <option value="anomaly">Anomalies</option>
+                            </select>
+                            <select id="timelineSeverityFilter">
+                                <option value="all">All Severities</option>
+                                <option value="critical">Critical</option>
+                                <option value="warning">Warning</option>
+                                <option value="info">Info</option>
+                            </select>
+                            <input type="text" id="timelineSearchInput" placeholder="Search event description..."
+                                style="width:200px;">
+                        </div>
+                    </div>
+
+                    <div class="log-stream" id="timelineEventsList" style="height:440px;"></div>
+                </div>
+            </section>
+
+            <!-- ================= 17. OPERATOR DECISION SUPPORT ================= -->
+            <section class="tab-section" id="tab-decision-support">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Operator Decision Support</h2>
+                        <div class="section-desc">Advisory inspection protocols for active anomalies, hazard warnings,
+                            crowd detections, and communication deviations. Advisory only.</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Active Advisory Action Protocols</span>
+                    </div>
+                    <div id="decisionSupportList" style="display:flex;flex-direction:column;gap:12px;"></div>
+                </div>
+            </section>
+
+            <!-- ================= 18. INSPECTION JOURNAL ================= -->
+            <section class="tab-section" id="tab-inspection-journal">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Inspection Mission Journal</h2>
+                        <div class="section-desc">Operational audit notes, mission milestones, and CSV export.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <button class="sm" id="btnExportJournalCsv">Export Journal CSV</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Add Operator Mission Note</span>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="journalNoteInput"
+                            placeholder="Enter observation note, sector identifier, or environmental comment..."
+                            style="flex:1;">
+                        <button class="primary sm" id="btnSaveJournalNote">Save Note</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Recorded Journal Entries</span>
+                    </div>
+                    <div id="journalNotesList"></div>
+                </div>
+            </section>
+
+            <!-- ================= 19. REPORTS ================= -->
+            <section class="tab-section" id="tab-reports">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Automated Inspection Reports</h2>
+                        <div class="section-desc">Generate print-ready mission audit summaries and telemetry datasets
+                            for regulatory archiving. Includes crowd alert audit.</div>
+                    </div>
+                    <div class="panel-tools">
+                        <button class="primary sm" id="btnPrintReport">Print / Export PDF</button>
+                        <button class="sm" id="btnExportReportCsv">Export Telemetry CSV</button>
+                    </div>
+                </div>
+
+                <div id="reportPreviewContent"></div>
+            </section>
+
+            <!-- ================= 20. SETTINGS & MANUAL CONTROLS ================= -->
+            <section class="tab-section" id="tab-settings">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Hardware Connection, Crowd Alert & Model Settings</h2>
+                        <div class="section-desc">Configurable software thresholds, crowd alert limits, manual drive
+                            pad, and local IndexedDB management.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Intelligence & Detection Thresholds</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:12px;font-size:12px;">
+                            <label><b style="color:var(--critical);">Crowd Detection Alert Threshold:</b>
+                                <input id="settingCrowdThreshold" type="number" min="1" max="50" value="4">
+                                <small style="color:var(--text-sub);display:block;margin-top:2px;">Triggers
+                                    high-priority rescue team alert when detected people count &gt; threshold (Default:
+                                    4).</small>
+                            </label>
+                            <label>ESP32-CAM Capture URL:
+                                <input id="cameraUrl" value="http://192.168.1.11/capture">
+                            </label>
+                            <label>Dashboard Refresh Interval:
+                                <select id="interval">
+                                    <option value="500">0.5 s (High Polling)</option>
+                                    <option value="800" selected>0.8 s (Nominal)</option>
+                                    <option value="1200">1.2 s</option>
+                                    <option value="2000">2.0 s (Low Bandwidth)</option>
+                                </select>
+                            </label>
+                            <label>YOLO Confidence Threshold (0.05 - 0.95):
+                                <input id="conf" type="number" min="0.05" max="0.95" step="0.05" value="0.35">
+                            </label>
+                            <div style="display:flex;gap:8px;margin-top:6px;">
+                                <button class="primary sm" id="saveSettings">Save All Settings</button>
+                                <button class="sm" id="refreshHealth">Check Flask Server</button>
+                            </div>
+                            <div id="healthText"
+                                style="color:var(--text-muted);font-size:11px;padding:8px;background:var(--bg-panel-alt);border-radius:4px;">
+                                Checking server health…
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Manual Rover Drive Controls</span>
+                            <span style="font-size:11px;color:var(--text-muted);">ESP32 Polling</span>
+                        </div>
+                        <div class="drive-keypad">
+                            <button class="drive-btn up" data-cmd="forward">▲</button>
+                            <button class="drive-btn left" data-cmd="left">◀</button>
+                            <button class="drive-btn stop" data-cmd="stop">■</button>
+                            <button class="drive-btn right" data-cmd="right">▶</button>
+                            <button class="drive-btn down" data-cmd="backward">▼</button>
+                        </div>
+                        <div id="commandStatus"
+                            style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:6px;">
+                            Last command: STOP
+                        </div>
+                        <div style="font-size:10px;color:var(--text-sub);margin-top:8px;line-height:1.4;">
+                            <b>Safety Interlock:</b> Manual forward movement is stopped automatically if the front
+                            ultrasonic sensor reports clearance &lt; 25 cm. Tested on stationary rover first.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Browser IndexedDB Storage Management</span>
+                        <div class="panel-tools">
+                            <button class="danger sm" id="btnClearStorage">Clear Local Database</button>
+                        </div>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-muted);">
+                        TERRANEX 2.2 uses browser-side IndexedDB to store telemetry packets, crowd alerts, visual change
+                        snapshots, and timeline events so historical data survives Flask restarts.
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts: Storage, Analytics, Three.js Engine, Cinematic UI, Features, and Dashboard Controller -->
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/analytics.js"></script>
+    <script src="/static/js/three-rover.js"></script>
+    <script src="/static/js/cinematic-ui.js"></script>
+    <script src="/static/js/visual-memory.js"></script>
+    <script src="/static/js/evidence-fusion.js"></script>
+    <script src="/static/js/mission-replay.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+
+</body>
+
+</html>

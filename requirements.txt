@@ -1,0 +1,7 @@
+Flask>=3.0,<4
+flask-cors>=4.0
+python-dotenv>=1.0
+requests>=2.32
+numpy>=1.26,<3
+opencv-python-headless>=4.9
+ultralytics>=8.3
